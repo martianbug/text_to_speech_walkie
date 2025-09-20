@@ -20,7 +20,8 @@ DEVICE = "cpu"
 LANG = "en"                
 BEAM_SIZE = 5              
 SEGMENT_QUEUE_MAX = 8      
-FONT = "Times"
+FONT = "Courier"  # "Helvetica", "Arial", "Courier", "System", ...
+# ----------------------------------------
 
 class TranscriptionWorker(threading.Thread):
     """
@@ -150,15 +151,17 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("Live STT local — faster-whisper + VAD (es)")
-        self.text = ScrolledText(root, wrap=tk.WORD, height=20, width=90, font=(FONT, 13))
-        self.text.pack(padx=10, pady=10)
-        self.text.configure(bg="black", fg="lime")
+        self.create_text_template(root)
+        
         btn_frame = tk.Frame(root)
         btn_frame.pack(padx=10, pady=(0,10))
         self.start_btn = tk.Button(btn_frame, text="Iniciar (Local)", command=self.start)
         self.start_btn.pack(side=tk.LEFT, padx=5)
         self.stop_btn = tk.Button(btn_frame, text="Detener", command=self.stop, state=tk.DISABLED)
-        self.stop_btn.pack(side=tk.LEFT, padx=5)
+        self.start_btn.configure(font=(FONT, 25))
+        self.stop_btn.configure(font=(FONT, 25))
+        
+        self.stop_btn.pack(side=tk.LEFT, padx=10)
 
         self.segment_queue = queue.Queue(maxsize=SEGMENT_QUEUE_MAX)
         self.vad = None
@@ -167,6 +170,12 @@ class App:
         
         self.worker = TranscriptionWorker(self.segment_queue, self.append_text)
         self.worker.start()
+
+    def create_text_template(self, root):
+        self.text = ScrolledText(root, wrap=tk.WORD, height=20, width=90, font=(FONT, 25))
+        self.text.pack(padx=20, pady=20)
+        self.text.tag_config('center', justify='center')
+        self.text.configure(bg="black", fg="lime")
         
     def append_text(self, txt):
         def _append():
@@ -180,9 +189,8 @@ class App:
             widget.pack_forget()
 
         # Recreate UI elements
-        self.text = ScrolledText(self.root, wrap=tk.WORD, height=20, width=90, font=(FONT, 15))
-        self.text.pack(padx=10, pady=10)
-        self.text.configure(bg="black", fg="lime")
+        self.create_text_template(root)
+
         
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(padx=10, pady=(0,10))
@@ -191,8 +199,13 @@ class App:
         self.stop_btn = tk.Button(btn_frame, text="Detener", command=self.stop, state=tk.DISABLED)
         self.stop_btn.pack(side=tk.LEFT, padx=5)
         
+        self.start_btn.configure(font=(FONT, 25))
+        self.stop_btn.configure(font=(FONT, 25))
+        
         exit_button = tk.Button(self.root, text="Exit", command=lambda: [exit_button.pack_forget(), self.root.destroy()])
+        exit_button.configure(font=(FONT, 25))
         exit_button.pack(pady=20)
+        
         
         # self.worker = TranscriptionWorker(self.segment_queue, self.append_text)
         # self.worker.start()
@@ -276,6 +289,8 @@ class App:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.attributes("-fullscreen", True)
+
     root.configure(background='black')
     root.iconbitmap("Images/myIcon.ico")
     app = App(root)
