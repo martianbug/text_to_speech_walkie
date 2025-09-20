@@ -173,9 +173,12 @@ class App:
 
     def create_text_template(self, root):
         self.text = ScrolledText(root, wrap=tk.WORD, height=20, width=90, font=(FONT, 25))
-        self.text.pack(padx=20, pady=20)
-        self.text.tag_config('center', justify='center')
+
+        self.text.pack(fill="both", padx=20, pady=20)
+        self.text.tag_configure('center', justify='center')
         self.text.configure(bg="black", fg="lime")
+        
+        self.text.tag_add("center", "1.0", "end")
         
     def append_text(self, txt):
         def _append():
