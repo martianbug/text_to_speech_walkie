@@ -15,11 +15,12 @@ from faster_whisper import WhisperModel
 from vad_segmenter import VADAudio
 import os
 # ---------------- Config ----------------
-MODEL_SIZE = "small"        # "tiny", "base", "small", ...
-DEVICE = "cpu"             # "cuda" si tienes GPU
+MODEL_SIZE = "small" # "tiny", "base", "small", ...
+DEVICE = "cpu"   
 LANG = "en"                
 BEAM_SIZE = 5              
 SEGMENT_QUEUE_MAX = 8      
+FONT = "Times"
 
 class TranscriptionWorker(threading.Thread):
     """
@@ -48,7 +49,7 @@ class TranscriptionWorker(threading.Thread):
             if self.device != "cpu":
                 compute_type = "int8_float16"
             self.model = WhisperModel(self.model_size, device=self.device)
-            self.ui_append_func("[Worker] Modelo cargado. Habla ahora\n\n")
+            self.ui_append_func("[Worker] Modelo cargado.\n\n")
             self.model_ready_event.set()
         except Exception as e:
             import traceback
@@ -98,9 +99,8 @@ class TranscriptionWorker(threading.Thread):
                         audio_np = audio_np.reshape(-1)
 
                     duration_s = audio_np.shape[0] / 16000.0
-                    self.ui_append_func(f"[Worker] Transcribiendo segmento {sid}: dur={duration_s:.2f}s\n")
+                    self.ui_append_func(f"\n[Worker] Transcribing segment {sid}: dur={duration_s:.2f}s\n")
 
-                    # --- transcripción usando numpy directo ---
                     segments, info = self.model.transcribe(audio_np, language=self.lang, beam_size=self.beam_size)
                     text = ""
                     for r in segments:
@@ -150,8 +150,9 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("Live STT local — faster-whisper + VAD (es)")
-        self.text = ScrolledText(root, wrap=tk.WORD, height=20, width=90, font=("Helvetica", 13))
+        self.text = ScrolledText(root, wrap=tk.WORD, height=20, width=90, font=(FONT, 13))
         self.text.pack(padx=10, pady=10)
+        self.text.configure(bg="black", fg="lime")
         btn_frame = tk.Frame(root)
         btn_frame.pack(padx=10, pady=(0,10))
         self.start_btn = tk.Button(btn_frame, text="Iniciar (Local)", command=self.start)
@@ -163,7 +164,10 @@ class App:
         self.vad = None
         self.worker = None
         self._segment_counter = 0
-
+        
+        self.worker = TranscriptionWorker(self.segment_queue, self.append_text)
+        self.worker.start()
+        
     def append_text(self, txt):
         def _append():
             self.text.insert(tk.END, txt)
@@ -176,11 +180,13 @@ class App:
             widget.pack_forget()
 
         # Recreate UI elements
-        self.text = ScrolledText(self.root, wrap=tk.WORD, height=20, width=90, font=("Helvetica", 13))
+        self.text = ScrolledText(self.root, wrap=tk.WORD, height=20, width=90, font=(FONT, 15))
         self.text.pack(padx=10, pady=10)
+        self.text.configure(bg="black", fg="lime")
+        
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(padx=10, pady=(0,10))
-        self.start_btn = tk.Button(btn_frame, text="Iniciar (Local)", command=self.start)
+        self.start_btn = tk.Button(btn_frame, text = "Iniciar (Local)", command=self.start)
         self.start_btn.pack(side=tk.LEFT, padx=5)
         self.stop_btn = tk.Button(btn_frame, text="Detener", command=self.stop, state=tk.DISABLED)
         self.stop_btn.pack(side=tk.LEFT, padx=5)
@@ -188,15 +194,14 @@ class App:
         exit_button = tk.Button(self.root, text="Exit", command=lambda: [exit_button.pack_forget(), self.root.destroy()])
         exit_button.pack(pady=20)
         
-        self.worker = TranscriptionWorker(self.segment_queue, self.append_text)
-        self.worker.start()
+        # self.worker = TranscriptionWorker(self.segment_queue, self.append_text)
+        # self.worker.start()
         
         self.start_btn.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
         
         self.text.delete("1.0", tk.END)
 
-        # iniciar VAD
         self.vad = VADAudio(
             aggressiveness=3,
             input_sample_rate=48000,
@@ -209,7 +214,7 @@ class App:
         # lanzar hilo productor que pujee segmentos en la cola
         self._producer_thread = threading.Thread(target=self._segment_producer, daemon=True)
         self._producer_thread.start()
-        self.append_text("Starting Program\n")
+        self.append_text("Started\n")
 
     def _segment_producer(self):
         """
@@ -271,6 +276,8 @@ class App:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.configure(background='black')
+    root.iconbitmap("Images/myIcon.ico")
     app = App(root)
     root.protocol("WM_DELETE_WINDOW", lambda: [app.stop(), root.destroy()])
     root.mainloop()
