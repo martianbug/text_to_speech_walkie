@@ -1,0 +1,4 @@
+spacey
+emoji
+sounddevice
+faster_whisper

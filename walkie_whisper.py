@@ -10,17 +10,19 @@ import soundfile as sf
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 import sounddevice as sd
+import emoji
 
 from faster_whisper import WhisperModel
+from text_to_emoji_en import text_to_emoji_summary
 from vad_segmenter import VADAudio
-import os
+
 # ---------------- Config ----------------
 MODEL_SIZE = "small" # "tiny", "base", "small", ...
 DEVICE = "cpu"   
 LANG = "en"                
 BEAM_SIZE = 5              
 SEGMENT_QUEUE_MAX = 8      
-FONT = "Courier"  # "Helvetica", "Arial", "Courier", "System", ...
+FONT = "Segoe UI Emoji"  # "Helvetica", "Arial", "Courier", "System", ...
 # ----------------------------------------
 
 class TranscriptionWorker(threading.Thread):
@@ -115,6 +117,14 @@ class TranscriptionWorker(threading.Thread):
                     out = f"[{start_s} - {end_s} | seg {sid}] {text.strip() or '(no text)'}\n"
                     # self.ui_append_func(out)
                     self.ui_append_func("\n"+text.strip())
+                    self.ui_append_func("\n"+text_to_emoji_summary(text))
+                    self.ui_append_func("\n"+emoji.emojize(text))
+                    
+                    print("\n"+emoji.emojize(text))
+                    
+                    print("\n"+text_to_emoji_summary(text))
+                    
+                    
                     
                 except Exception as e:
                     import traceback
@@ -173,11 +183,9 @@ class App:
 
     def create_text_template(self, root):
         self.text = ScrolledText(root, wrap=tk.WORD, height=20, width=90, font=(FONT, 25))
-
         self.text.pack(fill="both", padx=20, pady=20)
         self.text.tag_configure('center', justify='center')
         self.text.configure(bg="black", fg="lime")
-        
         self.text.tag_add("center", "1.0", "end")
         
     def append_text(self, txt):
@@ -190,11 +198,9 @@ class App:
         # Remove all widgets from the window (including any Exit button)
         for widget in self.root.winfo_children():
             widget.pack_forget()
-
         # Recreate UI elements
         self.create_text_template(root)
 
-        
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(padx=10, pady=(0,10))
         self.start_btn = tk.Button(btn_frame, text = "Iniciar (Local)", command=self.start)
@@ -208,7 +214,6 @@ class App:
         exit_button = tk.Button(self.root, text="Exit", command=lambda: [exit_button.pack_forget(), self.root.destroy()])
         exit_button.configure(font=(FONT, 25))
         exit_button.pack(pady=20)
-        
         
         # self.worker = TranscriptionWorker(self.segment_queue, self.append_text)
         # self.worker.start()
